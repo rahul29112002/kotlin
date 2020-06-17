@@ -62,6 +62,7 @@ dependencies {
     testCompile(projectTests(":kotlin-sam-with-receiver-compiler-plugin"))
     testCompile(projectTests(":kotlinx-serialization-compiler-plugin"))
     testCompile(projectTests(":plugins:fir:fir-plugin-prototype"))
+    testCompile(projectTests(":kotlinx-atomicfu-compiler-plugin"))
     testCompile(projectTests(":generators:test-generator"))
     testCompileOnly(project(":kotlin-reflect-api"))
     testRuntime(intellijDep()) { includeJars("idea_rt") }
