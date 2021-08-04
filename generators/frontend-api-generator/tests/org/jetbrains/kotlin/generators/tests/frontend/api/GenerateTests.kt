@@ -82,6 +82,10 @@ fun main(args: Array<String>) {
             testClass<AbstractHLImportOptimizerTest> {
                 model("components/importOptimizer", pattern = TestGeneratorUtil.KT_WITHOUT_DOTS_IN_NAME)
             }
+
+            testClass<AbstractHasCommonSubtypeTest> {
+                model("components/hasCommonSubtype")
+            }
         }
 
         testGroup("idea/idea-frontend-fir/idea-fir-low-level-api/tests", "compiler/fir/raw-fir/psi2fir/testData") {
