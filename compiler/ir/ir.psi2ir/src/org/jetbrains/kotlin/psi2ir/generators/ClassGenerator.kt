@@ -443,6 +443,7 @@ class ClassGenerator(
                 if (ktParameter.hasValOrVar()) {
                     val irProperty = PropertyGenerator(declarationGenerator)
                         .generatePropertyForPrimaryConstructorParameter(ktParameter, irValueParameter)
+                    irValueParameter.correspondingPropertySymbol = irProperty.symbol
                     irClass.addMember(irProperty)
                 }
             }
