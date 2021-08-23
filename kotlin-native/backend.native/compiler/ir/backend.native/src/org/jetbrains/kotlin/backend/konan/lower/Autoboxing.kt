@@ -23,14 +23,12 @@ import org.jetbrains.kotlin.ir.declarations.impl.IrFunctionImpl
 import org.jetbrains.kotlin.ir.declarations.impl.IrPropertyImpl
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrConstantObjectImpl
 import org.jetbrains.kotlin.ir.symbols.*
 import org.jetbrains.kotlin.ir.symbols.impl.IrFieldSymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrPropertySymbolImpl
 import org.jetbrains.kotlin.ir.symbols.impl.IrSimpleFunctionSymbolImpl
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.getClass
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.ir.visitors.*
 import org.jetbrains.kotlin.name.Name
@@ -161,30 +159,18 @@ private class AutoboxingTransformer(val context: Context) : AbstractValueUsageTr
             this
         } else {
             if (this is IrConstantValue) {
-                val isBoxing = actualType.getInlinedClassNative() != null
                 return when (this) {
                     is IrConstantPrimitive -> {
-                        require(isBoxing) { "Can't unbox IrConstantPrimitive" }
-                        val clazz = this.type.getClass()!!
-                        val field = if (clazz.isNativePrimitiveType())
-                            getOrCreatePrimitiveBoxField(clazz)
-                        else
-                            getInlineClassBackingField(clazz)
-                        val property = field.correspondingPropertySymbol!!
-                        IrConstantObjectImpl(
-                                this.startOffset, this.endOffset,
-                                this.type.getClass()!!.primaryConstructor!!.symbol,
-                                mapOf(property to this),
-                                irBuiltIns.anyNType
-                        )
+                        this.apply { this.type = expectedType }
                     }
                     is IrConstantObject -> {
-                        if (isBoxing) {
-                            this.type = irBuiltIns.anyNType
+                        val expectedInlinedType = expectedType.getInlinedClassNative()
+                        if (expectedInlinedType != null) {
+                            this.arguments.singleOrNull()?.useAs(expectedType)
+                                    ?: error("Inline class must have single argument constructor")
                         } else {
-                            this.type = this.constructor.owner.constructedClassType
+                            this
                         }
-                        this
                     }
                     else -> TODO("Boxing/unboxing of ${this::class.qualifiedName} is not supported")
                 }

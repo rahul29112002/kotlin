@@ -47,60 +47,40 @@ class IrConstantObjectImpl constructor(
     override val startOffset: Int,
     override val endOffset: Int,
     override val constructor: IrConstructorSymbol,
-    properties_: Map<IrPropertySymbol, IrConstantValue>,
+    initArguments: List<IrConstantValue>,
     override var type: IrType = constructor.owner.constructedClassType,
 ) : IrConstantObject() {
-    override val properties = properties_.toMutableMap()
-
-    init {
-        require(properties.all { it.key.owner.backingField != null }) { "Properties of constant object must have backing field"}
-        require(constructor.owner.valueParameters.all { it.correspondingPropertySymbol != null }) {
-            "All constructor of constant object parameters must be val"
-        }
-        require(constructor.owner.valueParameters.all { it.correspondingPropertySymbol!! in properties }) {
-            "All constructor of constant object parameters values must be given"
-        }
-    }
+    override val arguments = SmartList(initArguments)
 
     override fun <R, D> accept(visitor: IrElementVisitor<R, D>, data: D): R {
         return visitor.visitConstantObject(this, data)
     }
 
-    override fun putProperty(property: IrPropertySymbol, value: IrConstantValue) {
-        properties[property] = value
-    }
-
-    override fun toConstructorCall(): IrConstructorCall {
-        return IrConstructorCallImpl.fromSymbolOwner(startOffset, endOffset, type, constructor).apply {
-            constructor.owner.valueParameters.forEach {
-                putValueArgument(it.index, properties[it.correspondingPropertySymbol]!!)
-            }
-        }
+    override fun putArgument(index: Int, value: IrConstantValue) {
+        arguments[index] = value
     }
 
     override fun contentEquals(other: IrConstantValue): Boolean =
         other is IrConstantObjectImpl &&
                 other.type == type &&
                 other.constructor == constructor &&
-                properties.size == other.properties.size &&
-                properties.all { (field, value) -> other.properties[field]?.contentEquals(value) == true }
+                arguments.size == other.arguments.size &&
+                arguments.indices.all { index -> arguments[index].contentEquals(other.arguments[index]) }
 
     override fun contentHashCode(): Int {
         var res = type.hashCode() * 31 + constructor.hashCode()
-        for ((field, value) in properties) {
-            res += field.hashCode() xor value.contentHashCode()
+        for (value in arguments) {
+            res = res * 31 + value.contentHashCode()
         }
         return res
     }
 
     override fun <D> acceptChildren(visitor: IrElementVisitor<Unit, D>, data: D) {
-        properties.forEach { (_, value) -> value.accept(visitor, data) }
+        arguments.forEach { value -> value.accept(visitor, data) }
     }
 
     override fun <D> transformChildren(transformer: IrElementTransformer<D>, data: D) {
-        for ((property, value) in properties) {
-            properties[property] = value.transform(transformer, data) as IrConstantValue
-        }
+        arguments.transformInPlace { it.transform(transformer, data) }
     }
 }
 

@@ -387,24 +387,23 @@ fun IrBuilderWithScope.irConstantArray(type: IrType, elements: List<IrConstantVa
         elements
     )
 
-fun IrBuilderWithScope.irConstantObject(clazz: IrClass, elements: Map<String, IrConstantValue>): IrConstantValue {
-    val superClassSeq = generateSequence(clazz) {
-        it.superTypes.asSequence()
-            .mapNotNull { type -> type.takeIf { !type.isAny() }?.classOrNull?.owner }
-            .singleOrNull { !it.isInterface }
-    }
-    val propertiesMap = superClassSeq
-        .flatMap { it.properties }
-        .filter { it.backingField != null }
-        .associate {
-            val value = (elements[it.name.asString()] ?: throw IllegalArgumentException("No value for field named ${it.name} provided"))
-            it.symbol to value
-        }.takeIf { it.size == elements.size }
-        ?: throw IllegalArgumentException("Too many values provided for ${clazz.name} construction")
-
+fun IrBuilderWithScope.irConstantObject(clazz: IrClass, arguments: List<IrConstantValue>): IrConstantValue {
     return IrConstantObjectImpl(
         startOffset, endOffset,
         clazz.primaryConstructor!!.symbol,
-        propertiesMap
+        arguments
+    )
+}
+
+fun IrBuilderWithScope.irConstantObject(clazz: IrClass, elements: Map<String, IrConstantValue>): IrConstantValue {
+    return irConstantObject(
+        clazz,
+        clazz.primaryConstructor!!.symbol.owner.valueParameters.also {
+            require(it.size == elements.size) {
+                "Wrong number of values provided for ${clazz.name} construction: ${elements.size} instead of ${it.size}"
+            }
+        }.map {
+            elements[it.name.asString()] ?: error("No value for field named ${it.name} provided")
+        }
     )
 }

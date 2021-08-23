@@ -1000,8 +1000,7 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
                                         return evaluateSuspendableExpression  (value)
             is IrSuspensionPoint     -> return evaluateSuspensionPoint        (value)
             is IrClassReference ->      return evaluateClassReference         (value)
-            is IrConstantValue ->
-                                        return evaluateConstantValue   (value).llvm
+            is IrConstantValue ->       return evaluateConstantValue   (value).llvm
             else                     -> {
                 TODO(ir2string(value))
             }
@@ -1836,7 +1835,16 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
         val symbols = context.ir.symbols
         return when (value) {
             is IrConstantPrimitive -> {
-                evaluateConst(value.value)
+                val constructedType = value.value.type
+                val needBoxing = context.ir.symbols.getTypeConversion(constructedType, value.type) != null
+                if (needBoxing) {
+                    context.llvm.staticData.createConstKotlinObject(
+                            constructedType.getClass()!!,
+                            evaluateConst(value.value)
+                    )
+                } else {
+                    evaluateConst(value.value)
+                }
             }
             is IrConstantArray -> {
                 val clazz = value.type.getClass()!!
@@ -1854,17 +1862,20 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
                 val needUnBoxing = constructedType.getInlinedClassNative() != null &&
                         context.ir.symbols.getTypeConversion(constructedType, value.type) == null
                 if (needUnBoxing) {
-                    val unboxed = value.properties.values.singleOrNull()
-                            ?: error("Inlined class should have exactly one field")
+                    val unboxed = value.arguments.singleOrNull()
+                            ?: error("Inlined class should have exactly one constructor argument")
                     return evaluateConstantValue(unboxed)
                 }
                 context.llvm.staticData.createConstKotlinObject(
                         constructedClass,
-                        *context.getLayoutBuilder(constructedClass).fields.map {
-                            evaluateConstantValue(value.properties[it.correspondingPropertySymbol]
-                                    ?: error("Bad statically initialized object: field ${it.kotlinFqName} value not set"))
+                        *context.getLayoutBuilder(constructedClass).fields.map { field ->
+                            val index = value.constructor.owner.valueParameters
+                                    .indexOfFirst { it.name == field.name }
+                                    .takeIf { it >= 0 }
+                                    ?: error("Bad statically initialized object: field ${field.kotlinFqName} value not set")
+                            evaluateConstantValue(value.arguments[index])
                         }.also {
-                            require(it.size == value.properties.size) { "Bad statically initialized object: too many fields" }
+                            require(it.size == value.arguments.size) { "Bad statically initialized object: too many fields" }
                         }.toTypedArray()
                 )
             }

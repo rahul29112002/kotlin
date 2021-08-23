@@ -426,9 +426,9 @@ private val backendCodegen = namedUnitPhase(
                 useInternalAbiPhase then
                 bitcodePhase then
                 verifyBitcodePhase then
-                printBitcodePhase then
                 linkBitcodeDependenciesPhase then
                 checkExternalCallsPhase then
+                printBitcodePhase then
                 bitcodeOptimizationPhase then
                 rewriteExternalCallsCheckerGlobals then
                 unitSink()

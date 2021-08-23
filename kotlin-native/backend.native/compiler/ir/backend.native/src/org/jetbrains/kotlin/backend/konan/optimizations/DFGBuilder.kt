@@ -443,15 +443,6 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
         override fun visitConstantObject(expression: IrConstantObject) {
             super.visitConstantObject(expression)
             expressions += expression to currentLoop
-            for ((property, value) in expression.properties) {
-                expressions += IrSetFieldImpl(
-                        expression.startOffset, expression.endOffset,
-                        property.owner.backingField!!.symbol,
-                        expression,
-                        value,
-                        context.irBuiltIns.unitType,
-                ) to currentLoop
-            }
         }
     }
 
@@ -725,7 +716,7 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
                                         symbolTable.mapFunction(objectClass.constructors.single())
                                     }
                                 }
-                                DataFlowIR.Node.Singleton(symbolTable.mapType(value.type), constructor)
+                                DataFlowIR.Node.Singleton(symbolTable.mapType(value.type), constructor, emptyList())
                             }
 
                             is IrConstructorCall -> {
@@ -899,8 +890,14 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
 
                             is IrConstantIntrinsic -> DataFlowIR.Node.Const(symbolTable.mapType(value.type))
 
-                            is IrConstantArray, is IrConstantObject ->
-                                DataFlowIR.Node.Singleton(symbolTable.mapType(value.type), null)
+                            is IrConstantArray ->
+                                DataFlowIR.Node.Singleton(symbolTable.mapType(value.type), null, null)
+                            is IrConstantObject ->
+                                DataFlowIR.Node.Singleton(
+                                        symbolTable.mapType(value.type),
+                                        symbolTable.mapFunction(value.constructor.owner),
+                                        value.arguments.map { expressionToEdge(it) }
+                                )
 
                             else -> TODO("Unknown expression: ${ir2stringWhole(value)}")
                         }
