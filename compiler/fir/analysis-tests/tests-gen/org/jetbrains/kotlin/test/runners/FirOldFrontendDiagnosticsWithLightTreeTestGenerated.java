@@ -7508,6 +7508,12 @@ public class FirOldFrontendDiagnosticsWithLightTreeTestGenerated extends Abstrac
             }
 
             @Test
+            @TestMetadata("localObjectInInnerClass.kt")
+            public void testLocalObjectInInnerClass() throws Exception {
+                runTest("compiler/testData/diagnostics/tests/declarationChecks/localObjectInInnerClass.kt");
+            }
+
+            @Test
             @TestMetadata("LocalVariableWithNoTypeInformation.kt")
             public void testLocalVariableWithNoTypeInformation() throws Exception {
                 runTest("compiler/testData/diagnostics/tests/declarationChecks/LocalVariableWithNoTypeInformation.kt");
