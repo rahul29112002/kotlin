@@ -65,6 +65,7 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
         // Somehow there is no reasonable common ancestor for IrProperty and IrLocalDelegatedProperty,
         // so index by IrDeclaration.
         val kProperties = mutableMapOf<IrDeclaration, IrField>()
+        val generatedClasses = mutableListOf<IrClass>()
 
         fun kPropertyField(value: IrExpressionBody, id:Int) =
                 IrFieldImpl(
@@ -94,14 +95,14 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
                 irBuilder.run {
                     val receiversCount = listOf(expression.dispatchReceiver, expression.extensionReceiver).count { it != null }
                     return when (receiversCount) {
-                        1 -> createKProperty(expression, this) // Has receiver.
+                        1 -> createKProperty(expression, this, irFile, generatedClasses) // Has receiver.
 
                         2 -> error("Callable reference to properties with two receivers is not allowed: ${expression.symbol.owner.name}")
 
                         else -> { // Cache KProperties with no arguments.
                             val field = kProperties.getOrPut(expression.symbol.owner) {
                                 kPropertyField(
-                                    irExprBody(createKProperty(expression, this) as IrConstantValue),
+                                    irExprBody(createKProperty(expression, this, irFile, generatedClasses) as IrConstantValue),
                                     kProperties.size
                                 )
                             }
@@ -138,15 +139,15 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
                 }
             }
         })
-
-        if (kProperties.isNotEmpty()) {
-            kProperties.values.forEach { irFile.declarations.add(it) }
-        }
+        irFile.declarations.addAll(kProperties.values)
+        irFile.declarations.addAll(generatedClasses)
     }
 
     private fun createKProperty(
             expression: IrPropertyReference,
-            irBuilder: IrBuilderWithScope
+            irBuilder: IrBuilderWithScope,
+            irFile: IrFile,
+            generatedClasses: MutableList<IrClass>
     ): IrExpression {
         val startOffset = expression.startOffset
         val endOffset = expression.endOffset
@@ -227,11 +228,23 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
             val name = irString(expression.symbol.owner.name.asString())
 
             val initializer = if (dispatchReceiver == null && extensionReceiver == null) {
+                fun IrFunctionReference.convert() : IrConstantValue {
+                    val builder = FunctionReferenceLowering.FunctionReferenceBuilder(
+                            irFile,
+                            irFile,
+                            this,
+                            this@PropertyDelegationLowering.context,
+                            irBuilder,
+                    )
+                    val (newClass, newExpression) = builder.build()
+                    generatedClasses.add(newClass)
+                    return newExpression as IrConstantValue
+                }
                 return irConstantObject(clazz, @OptIn(ExperimentalStdlibApi::class) buildMap {
                     put("name", irConstantPrimitive(name))
-                    put("getter", irConstantIntrinsic(getterCallableReference))
+                    put("getter", getterCallableReference.convert())
                     if (setterCallableReference != null) {
-                        put("setter", irConstantIntrinsic(setterCallableReference))
+                        put("setter", setterCallableReference.convert())
                     }
                 })
             } else irCall(clazz.constructors.single(), receiverTypes + listOf(returnType)).apply {
