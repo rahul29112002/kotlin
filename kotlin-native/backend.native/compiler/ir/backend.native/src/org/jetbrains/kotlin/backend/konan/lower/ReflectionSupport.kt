@@ -63,7 +63,7 @@ internal class KTypeGenerator(
                 is IrTypeParameterSymbol -> {
                     if (classifier.owner.isReified && leaveReifiedForLater) {
                         // Leave as is for reification.
-                        return irConstantIntrinsic(irCall(symbols.typeOf).apply { putTypeArgument(0, type) })
+                        return irConstantObject(symbols.kTypeImplIntrinsicConstructor, emptyList(), listOf(type))
                     }
 
                     // Leave upper bounds of non-reified type parameters as is, even if they are reified themselves.

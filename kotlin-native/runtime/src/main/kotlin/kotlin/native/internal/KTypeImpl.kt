@@ -51,13 +51,18 @@ internal class KTypeProjectionList(val variance: IntArray, val type: Array<KType
 
 }
 
-internal class KTypeImpl(
+internal class KTypeImpl<T>(
         override val classifier: KClassifier?,
         override val arguments: List<KTypeProjection>,
         override val isMarkedNullable: Boolean
 ) : KType {
+
+    @ExportForCompiler
+    @ConstantConstructorIntrinsic("KTYPE_IMPL")
+    constructor() : this(null, TODO("This is intrinsic constructor and it shouldn't be used directly"), false)
+
     override fun equals(other: Any?) =
-            other is KTypeImpl &&
+            other is KTypeImpl<*> &&
                     this.classifier == other.classifier &&
                     this.arguments == other.arguments &&
                     this.isMarkedNullable == other.isMarkedNullable

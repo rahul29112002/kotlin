@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.backend.konan.KonanFqNames
 import org.jetbrains.kotlin.backend.konan.MemoryModel
 import org.jetbrains.kotlin.backend.konan.RuntimeNames
 import org.jetbrains.kotlin.backend.konan.descriptors.getAnnotationStringValue
+import org.jetbrains.kotlin.backend.konan.descriptors.isConstantConstructorIntrinsic
 import org.jetbrains.kotlin.backend.konan.descriptors.isTypedIntrinsic
 import org.jetbrains.kotlin.backend.konan.llvm.objc.genObjCSelector
 import org.jetbrains.kotlin.backend.konan.reportCompilationError
@@ -95,6 +96,7 @@ internal enum class IntrinsicType {
 
 internal enum class ConstantConstructorIntrinsicType {
     KCLASS_IMPL,
+    KTYPE_IMPL,
 }
 
 // Explicit and single interface between Intrinsic Generator and IrToBitcode.
@@ -128,6 +130,9 @@ private fun getIntrinsicType(callSite: IrFunctionAccessExpression): IntrinsicTyp
     val value = annotation.getAnnotationStringValue()!!
     return IntrinsicType.valueOf(value)
 }
+
+internal fun tryGetConstantConstructorIntrinsicType(constructor: IrConstructorSymbol): ConstantConstructorIntrinsicType? =
+        if (constructor.owner.isConstantConstructorIntrinsic) getConstantConstructorIntrinsicType(constructor) else null
 
 private fun getConstantConstructorIntrinsicType(constructor: IrConstructorSymbol): ConstantConstructorIntrinsicType {
     val annotation = constructor.owner.annotations.findAnnotation(KonanFqNames.constantConstructorIntrinsic)!!
@@ -270,7 +275,7 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
             }
 
     fun evaluateConstantConstructorFields(constant: IrConstantObject, args: List<ConstValue>) : List<ConstValue> {
-        return when (getConstantConstructorIntrinsicType(constant.constructor)) {
+        return when (val intrinsicType = getConstantConstructorIntrinsicType(constant.constructor)) {
             ConstantConstructorIntrinsicType.KCLASS_IMPL -> {
                 require(args.isEmpty())
                 val typeArgument = constant.typeArguments[0]
@@ -278,6 +283,8 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                 val typeInfo = codegen.typeInfoValue(typeArgumentClass)
                 listOf(constPointer(typeInfo).bitcast(int8TypePtr))
             }
+            ConstantConstructorIntrinsicType.KTYPE_IMPL ->
+                reportNonLoweredIntrinsic(intrinsicType)
         }
     }
 
@@ -286,6 +293,9 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
 
     private fun reportNonLoweredIntrinsic(intrinsicType: IntrinsicType): Nothing =
             context.reportCompilationError("Intrinsic of type $intrinsicType should be handled by previous lowering phase")
+
+    private fun reportNonLoweredIntrinsic(intrinsicType: ConstantConstructorIntrinsicType): Nothing =
+            context.reportCompilationError("Constant constructor intrinsic of type $intrinsicType should be handled by previous lowering phase")
 
     private fun FunctionGenerationContext.emitGetContinuation(): LLVMValueRef =
             environment.continuation
