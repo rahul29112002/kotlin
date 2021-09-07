@@ -139,7 +139,7 @@ abstract class FirDataFlowAnalyzer<FLOW : Flow>(
                                         components.session,
                                         components.context.file,
                                         components.context.containers,
-                                        dispatchReceiver = null
+                                        dispatchReceiver = null,
                                     )
                                 }
                                 is ConeTypeParameterType -> true
