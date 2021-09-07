@@ -1885,12 +1885,6 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
                         *fields.toTypedArray()
                 )
             }
-            is IrConstantIntrinsic -> {
-                val expression = value.expression
-                when ((expression as? IrCall)?.symbol) {
-                    else -> TODO("Statically initialized intrinsic ${value.dump()} is not implemented")
-                }
-            }
             else -> TODO("Unimplemented IrConstantValue subclass ${value::class.qualifiedName}")
         }
     }

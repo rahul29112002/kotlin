@@ -57,7 +57,6 @@ interface IrElementVisitor<out R, in D> {
     fun visitConstantObject(expression: IrConstantObject, data: D) = visitConstantValue(expression, data)
     fun visitConstantPrimitive(expression: IrConstantPrimitive, data: D) = visitConstantValue(expression, data)
     fun visitConstantArray(expression: IrConstantArray, data: D) = visitConstantValue(expression, data)
-    fun visitConstantIntrinsic(expression: IrConstantIntrinsic, data: D) = visitConstantValue(expression, data)
     fun visitVararg(expression: IrVararg, data: D) = visitExpression(expression, data)
     fun visitSpreadElement(spread: IrSpreadElement, data: D) = visitElement(spread, data)
 

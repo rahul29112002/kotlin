@@ -311,8 +311,7 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
                 is IrVararg,
                 is IrConst<*>,
                 is IrTypeOperatorCall,
-                is IrConstantPrimitive,
-                is IrConstantIntrinsic ->
+                is IrConstantPrimitive ->
                     expressions += expression to currentLoop
             }
 
@@ -887,8 +886,6 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
                             }
 
                             is IrConstantPrimitive -> getNode(value.value).value
-
-                            is IrConstantIntrinsic -> DataFlowIR.Node.Const(symbolTable.mapType(value.type))
 
                             is IrConstantArray ->
                                 DataFlowIR.Node.Singleton(symbolTable.mapType(value.type), null, null)

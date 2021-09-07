@@ -153,9 +153,6 @@ abstract class IrElementTransformerVoid : IrElementTransformer<Nothing?> {
     open fun visitConstantArray(expression: IrConstantArray) = visitConstantValue(expression)
     final override fun visitConstantArray(expression: IrConstantArray, data: Nothing?) = visitConstantArray(expression)
 
-    open fun visitConstantIntrinsic(expression: IrConstantIntrinsic) = visitConstantValue(expression)
-    final override fun visitConstantIntrinsic(expression: IrConstantIntrinsic, data: Nothing?) = visitConstantIntrinsic(expression)
-
     open fun visitVararg(expression: IrVararg) = visitExpression(expression)
     final override fun visitVararg(expression: IrVararg, data: Nothing?) = visitVararg(expression)
 

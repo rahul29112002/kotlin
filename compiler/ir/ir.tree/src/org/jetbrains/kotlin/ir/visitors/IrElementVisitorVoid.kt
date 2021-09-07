@@ -119,9 +119,6 @@ interface IrElementVisitorVoid : IrElementVisitor<Unit, Nothing?> {
     fun visitConstantArray(expression: IrConstantArray) = visitConstantValue(expression)
     override fun visitConstantArray(expression: IrConstantArray, data: Nothing?) = visitConstantArray(expression)
 
-    fun visitConstantIntrinsic(expression: IrConstantIntrinsic) = visitConstantValue(expression)
-    override fun visitConstantIntrinsic(expression: IrConstantIntrinsic, data: Nothing?) = visitConstantIntrinsic(expression)
-
     fun visitVararg(expression: IrVararg) = visitExpression(expression)
     override fun visitVararg(expression: IrVararg, data: Nothing?) = visitVararg(expression)
 

@@ -377,9 +377,6 @@ inline fun IrBuilderWithScope.irBlockBody(
 fun IrBuilderWithScope.irConstantPrimitive(value: IrConst<*>) =
     IrConstantPrimitiveImpl(startOffset, endOffset, value)
 
-fun IrBuilderWithScope.irConstantIntrinsic(expression: IrExpression) =
-    IrConstantIntrinsicImpl(startOffset, endOffset, expression)
-
 fun IrBuilderWithScope.irConstantArray(type: IrType, elements: List<IrConstantValue>) =
     IrConstantArrayImpl(
         startOffset, endOffset,

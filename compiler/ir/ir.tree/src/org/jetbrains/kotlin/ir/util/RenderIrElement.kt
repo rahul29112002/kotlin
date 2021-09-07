@@ -736,9 +736,6 @@ class RenderIrElementVisitor(private val normalizeNames: Boolean = false, privat
     override fun visitConstantPrimitive(expression: IrConstantPrimitive, data: Nothing?): String =
         "CONSTANT_PRIMITIVE type=${expression.type.render()}"
 
-    override fun visitConstantIntrinsic(expression: IrConstantIntrinsic, data: Nothing?): String =
-        "CONSTANT_INTRINSIC type=${expression.type.render()}"
-
 
     private val descriptorRendererForErrorDeclarations = DescriptorRenderer.ONLY_NAMES_WITH_SHORT_TYPES
 }
