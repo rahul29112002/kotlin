@@ -2,6 +2,7 @@ package org.jetbrains.kotlin.backend.konan.llvm
 
 import kotlinx.cinterop.cValuesOf
 import llvm.*
+import org.jetbrains.kotlin.backend.konan.KonanFqNames
 import org.jetbrains.kotlin.backend.konan.MemoryModel
 import org.jetbrains.kotlin.backend.konan.RuntimeNames
 import org.jetbrains.kotlin.backend.konan.descriptors.getAnnotationStringValue
@@ -12,6 +13,7 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.types.getClass
 import org.jetbrains.kotlin.ir.util.dump
 import org.jetbrains.kotlin.ir.util.findAnnotation
@@ -58,7 +60,6 @@ internal enum class IntrinsicType {
     OBJC_INIT_BY,
     OBJC_GET_SELECTOR,
     // Other
-    GET_CLASS_TYPE_INFO,
     CREATE_UNINITIALIZED_INSTANCE,
     IDENTITY,
     IMMUTABLE_BLOB,
@@ -92,6 +93,10 @@ internal enum class IntrinsicType {
     WORKER_EXECUTE
 }
 
+internal enum class ConstantConstructorIntrinsicType {
+    KCLASS_IMPL,
+}
+
 // Explicit and single interface between Intrinsic Generator and IrToBitcode.
 internal interface IntrinsicGeneratorEnvironment {
 
@@ -123,6 +128,13 @@ private fun getIntrinsicType(callSite: IrFunctionAccessExpression): IntrinsicTyp
     val value = annotation.getAnnotationStringValue()!!
     return IntrinsicType.valueOf(value)
 }
+
+private fun getConstantConstructorIntrinsicType(constructor: IrConstructorSymbol): ConstantConstructorIntrinsicType {
+    val annotation = constructor.owner.annotations.findAnnotation(KonanFqNames.constantConstructorIntrinsic)!!
+    val value = annotation.getAnnotationStringValue()!!
+    return ConstantConstructorIntrinsicType.valueOf(value)
+}
+
 
 internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnvironment) {
 
@@ -224,7 +236,6 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                 IntrinsicType.OBJC_GET_MESSENGER_STRET -> emitObjCGetMessenger(args, isStret = true)
                 IntrinsicType.OBJC_GET_OBJC_CLASS -> emitGetObjCClass(callSite)
                 IntrinsicType.OBJC_CREATE_SUPER_STRUCT -> emitObjCCreateSuperStruct(args)
-                IntrinsicType.GET_CLASS_TYPE_INFO -> emitGetClassTypeInfo(callSite)
                 IntrinsicType.INTEROP_READ_BITS -> emitReadBits(args)
                 IntrinsicType.INTEROP_WRITE_BITS -> emitWriteBits(args)
                 IntrinsicType.INTEROP_READ_PRIMITIVE -> emitReadPrimitive(callSite, args)
@@ -258,11 +269,23 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
                     reportSpecialIntrinsic(intrinsicType)
             }
 
+    fun evaluateConstantConstructorFields(constant: IrConstantObject, args: List<ConstValue>) : List<ConstValue> {
+        return when (getConstantConstructorIntrinsicType(constant.constructor)) {
+            ConstantConstructorIntrinsicType.KCLASS_IMPL -> {
+                require(args.isEmpty())
+                val typeArgument = constant.typeArguments[0]
+                val typeArgumentClass = typeArgument.getClass()!!
+                val typeInfo = codegen.typeInfoValue(typeArgumentClass)
+                listOf(constPointer(typeInfo).bitcast(int8TypePtr))
+            }
+        }
+    }
+
     private fun reportSpecialIntrinsic(intrinsicType: IntrinsicType): Nothing =
             context.reportCompilationError("$intrinsicType should be handled by `tryEvaluateSpecialCall`")
 
     private fun reportNonLoweredIntrinsic(intrinsicType: IntrinsicType): Nothing =
-            context.reportCompilationError("Intrinsic of type $intrinsicType should be handled by previos lowering phase")
+            context.reportCompilationError("Intrinsic of type $intrinsicType should be handled by previous lowering phase")
 
     private fun FunctionGenerationContext.emitGetContinuation(): LLVMValueRef =
             environment.continuation
@@ -395,19 +418,6 @@ internal class IntrinsicGenerator(private val environment: IntrinsicGeneratorEnv
         println("memcpy at ${callSite}")
         args.map { println(llvm2string(it)) }
         TODO("Implement me")
-    }
-
-    private fun FunctionGenerationContext.emitGetClassTypeInfo(callSite: IrCall): LLVMValueRef {
-        val typeArgument = callSite.getTypeArgument(0)!!
-        val typeArgumentClass = typeArgument.getClass()
-        return if (typeArgumentClass == null) {
-            // Should not happen anymore, but it is safer to handle this case.
-            unreachable()
-            kNullInt8Ptr
-        } else {
-            val typeInfo = codegen.typeInfoValue(typeArgumentClass)
-            LLVMConstBitCast(typeInfo, kInt8Ptr)!!
-        }
     }
 
     private fun FunctionGenerationContext.emitObjCCreateSuperStruct(args: List<LLVMValueRef>): LLVMValueRef {

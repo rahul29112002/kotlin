@@ -48,6 +48,7 @@ class IrConstantObjectImpl constructor(
     override val endOffset: Int,
     override val constructor: IrConstructorSymbol,
     initArguments: List<IrConstantValue>,
+    override val typeArguments: List<IrType>,
     override var type: IrType = constructor.owner.constructedClassType,
 ) : IrConstantObject() {
     override val arguments = SmartList(initArguments)
@@ -65,12 +66,18 @@ class IrConstantObjectImpl constructor(
                 other.type == type &&
                 other.constructor == constructor &&
                 arguments.size == other.arguments.size &&
-                arguments.indices.all { index -> arguments[index].contentEquals(other.arguments[index]) }
+                typeArguments.size == other.typeArguments.size &&
+                arguments.indices.all { index -> arguments[index].contentEquals(other.arguments[index]) } &&
+                typeArguments.indices.all { index -> typeArguments[index] == other.typeArguments[index] }
+
 
     override fun contentHashCode(): Int {
         var res = type.hashCode() * 31 + constructor.hashCode()
         for (value in arguments) {
             res = res * 31 + value.contentHashCode()
+        }
+        for (value in typeArguments) {
+            res = res * 31 + value.hashCode()
         }
         return res
     }

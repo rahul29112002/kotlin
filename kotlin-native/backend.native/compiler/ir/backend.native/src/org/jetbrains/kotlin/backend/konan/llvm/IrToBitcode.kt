@@ -1866,27 +1866,28 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
                             ?: error("Inlined class should have exactly one constructor argument")
                     return evaluateConstantValue(unboxed)
                 }
+                val fields = if (value.constructor.owner.isConstantConstructorIntrinsic) {
+                    intrinsicGenerator.evaluateConstantConstructorFields(value, value.arguments.map { evaluateConstantValue(it) })
+                } else {
+                    context.getLayoutBuilder(constructedClass).fields.map { field ->
+                        val index = value.constructor.owner.valueParameters
+                                .indexOfFirst { it.name == field.name }
+                                .takeIf { it >= 0 }
+                                ?: error("Bad statically initialized object: field ${field.kotlinFqName} value not set")
+                        evaluateConstantValue(value.arguments[index])
+                    }.also {
+                        require(it.size == value.arguments.size) { "Bad statically initialized object: too many fields" }
+                    }
+                }
+
                 context.llvm.staticData.createConstKotlinObject(
                         constructedClass,
-                        *context.getLayoutBuilder(constructedClass).fields.map { field ->
-                            val index = value.constructor.owner.valueParameters
-                                    .indexOfFirst { it.name == field.name }
-                                    .takeIf { it >= 0 }
-                                    ?: error("Bad statically initialized object: field ${field.kotlinFqName} value not set")
-                            evaluateConstantValue(value.arguments[index])
-                        }.also {
-                            require(it.size == value.arguments.size) { "Bad statically initialized object: too many fields" }
-                        }.toTypedArray()
+                        *fields.toTypedArray()
                 )
             }
             is IrConstantIntrinsic -> {
                 val expression = value.expression
                 when ((expression as? IrCall)?.symbol) {
-                    symbols.getClassTypeInfo -> {
-                        with(codegen) {
-                            expression.getTypeArgument(0)!!.getClass()!!.typeInfoPtr
-                        }
-                    }
                     else -> TODO("Statically initialized intrinsic ${value.dump()} is not implemented")
                 }
             }

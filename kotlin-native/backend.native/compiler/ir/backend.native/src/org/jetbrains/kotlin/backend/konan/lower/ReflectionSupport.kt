@@ -187,9 +187,7 @@ internal fun IrBuilderWithScope.irKClass(context: KonanBackendContext, symbol: I
             it is ClassDescriptor && it.fqNameUnsafe == InteropFqNames.nativePointed
         } -> irKClassUnsupported(context, "KClass for interop types is not supported yet")
 
-        else -> irConstantObject(symbols.kClassImpl.owner, mapOf(
-                "typeInfo" to irConstantIntrinsic(irCall(symbols.getClassTypeInfo, listOf(symbol.typeWithStarProjections)))
-        ))
+        else -> irConstantObject(symbols.kClassImplIntrinsicConstructor, emptyList(), listOf(symbol.typeWithStarProjections))
     }
 }
 

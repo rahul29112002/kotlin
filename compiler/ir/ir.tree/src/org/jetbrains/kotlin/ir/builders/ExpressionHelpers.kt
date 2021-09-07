@@ -387,15 +387,32 @@ fun IrBuilderWithScope.irConstantArray(type: IrType, elements: List<IrConstantVa
         elements
     )
 
-fun IrBuilderWithScope.irConstantObject(clazz: IrClass, arguments: List<IrConstantValue>): IrConstantValue {
+fun IrBuilderWithScope.irConstantObject(
+    constructor: IrConstructorSymbol,
+    arguments: List<IrConstantValue>,
+    typeArguments: List<IrType> = emptyList()
+): IrConstantValue {
     return IrConstantObjectImpl(
         startOffset, endOffset,
-        clazz.primaryConstructor!!.symbol,
-        arguments
+        constructor,
+        arguments,
+        typeArguments,
     )
 }
 
-fun IrBuilderWithScope.irConstantObject(clazz: IrClass, elements: Map<String, IrConstantValue>): IrConstantValue {
+fun IrBuilderWithScope.irConstantObject(
+    clazz: IrClass,
+    arguments: List<IrConstantValue>,
+    typeArguments: List<IrType> = emptyList()
+): IrConstantValue {
+    return irConstantObject(clazz.primaryConstructor?.symbol!!, arguments, typeArguments)
+}
+
+fun IrBuilderWithScope.irConstantObject(
+    clazz: IrClass,
+    elements: Map<String, IrConstantValue>,
+    typeArguments: List<IrType> = emptyList()
+): IrConstantValue {
     return irConstantObject(
         clazz,
         clazz.primaryConstructor!!.symbol.owner.valueParameters.also {
@@ -404,6 +421,7 @@ fun IrBuilderWithScope.irConstantObject(clazz: IrClass, elements: Map<String, Ir
             }
         }.map {
             elements[it.name.asString()] ?: error("No value for field named ${it.name} provided")
-        }
+        },
+        typeArguments
     )
 }
