@@ -33,23 +33,23 @@ gc::GCSchedulerConfig::GCSchedulerConfig() noexcept {
     }
 }
 
-gc::GCScheduler::GCThreadData::GCThreadData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept :
+gc::GCScheduler::GCData::GCData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept :
     config_(config), currentTimeCallbackUs_(std::move(currentTimeCallbackUs)), timeOfLastGcUs_(currentTimeCallbackUs_()) {}
 
-bool gc::GCScheduler::GCThreadData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
+bool gc::GCScheduler::GCData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
     if (allocatedBytes > config_.allocationThresholdBytes) return true;
 
     return currentTimeCallbackUs_() - timeOfLastGcUs_ >= config_.cooldownThresholdUs;
 }
 
-void gc::GCScheduler::GCThreadData::OnPerformFullGC() noexcept {
+void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
     timeOfLastGcUs_ = currentTimeCallbackUs_();
 }
 
-gc::GCScheduler::GCScheduler() noexcept : gcThreadData_(config_, []() { return konan::getTimeMicros(); }) {}
+gc::GCScheduler::GCScheduler() noexcept : gcData_(config_, []() { return konan::getTimeMicros(); }) {}
 
 gc::GCScheduler::ThreadData gc::GCScheduler::NewThreadData() noexcept {
     return ThreadData(config_, [this](size_t allocatedBytes, size_t safePointsCounter) {
-        return gcThreadData().OnSafePoint(allocatedBytes, safePointsCounter);
+        return gcData().OnSafePoint(allocatedBytes, safePointsCounter);
     });
 }

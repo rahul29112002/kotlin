@@ -84,11 +84,11 @@ public:
         size_t safePointsCounterThreshold_ = 0;
     };
 
-    class GCThreadData {
+    class GCData {
     public:
         using CurrentTimeCallback = std::function<uint64_t()>;
 
-        GCThreadData(GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept;
+        GCData(GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept;
 
         // May be called by different threads via `ThreadData`.
         bool OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept;
@@ -106,12 +106,12 @@ public:
     GCScheduler() noexcept;
 
     GCSchedulerConfig& config() noexcept { return config_; }
-    GCThreadData& gcThreadData() noexcept { return gcThreadData_; }
+    GCData& gcData() noexcept { return gcData_; }
     ThreadData NewThreadData() noexcept;
 
 private:
     GCSchedulerConfig config_;
-    GCThreadData gcThreadData_;
+    GCData gcData_;
 };
 
 } // namespace gc

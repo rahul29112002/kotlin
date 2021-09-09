@@ -138,7 +138,7 @@ mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMark
     RuntimeLogDebug({kTagGC}, "Suspended all threads in %" PRIu64 " microseconds", timeSuspendUs - timeStartUs);
 
     auto& scheduler = mm::GlobalData::Instance().gcScheduler();
-    scheduler.gcThreadData().OnPerformFullGC();
+    scheduler.gcData().OnPerformFullGC();
 
     RuntimeLogInfo({kTagGC}, "Started GC epoch %zu. Time since last GC %" PRIu64 " microseconds", epoch_, timeStartUs - lastGCTimestampUs_);
     KStdVector<ObjHeader*> graySet;
