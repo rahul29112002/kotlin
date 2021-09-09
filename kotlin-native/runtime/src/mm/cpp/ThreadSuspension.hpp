@@ -13,6 +13,12 @@
 namespace kotlin {
 namespace mm {
 
+namespace internal {
+
+extern std::atomic<bool> gSuspensionRequested;
+
+} // namespace internal
+
 class ThreadSuspensionData : private Pinned {
 public:
     explicit ThreadSuspensionData(ThreadState initialState) noexcept : state_(initialState), suspended_(false) {}
@@ -31,12 +37,16 @@ public:
 
     bool suspended() noexcept { return suspended_; }
 
-    bool suspendIfRequested() noexcept;
+    NO_EXTERNAL_CALLS_CHECK void suspendIfRequested() noexcept {
+        if (internal::gSuspensionRequested.load()) {
+            suspendIfRequestedSlowPath();
+        }
+    }
 
 private:
     std::atomic<ThreadState> state_;
     std::atomic<bool> suspended_;
-    bool suspendIfRequestedSlowPath() noexcept;
+    void suspendIfRequestedSlowPath() noexcept;
 };
 
 bool IsThreadSuspensionRequested() noexcept;

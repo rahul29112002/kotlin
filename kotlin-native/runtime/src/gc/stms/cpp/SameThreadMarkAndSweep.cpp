@@ -66,20 +66,15 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointExceptionUnwind() noexcept
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) noexcept {
-    auto suspended = threadData_.suspensionData().suspendIfRequested();
+    threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointAllocation(suspended, size)) {
+    if (scheduler.OnSafePointAllocation(size)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointAllocation size=%zu", size);
         PerformFullGC();
     }
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::PerformFullGC() noexcept {
-    auto& scheduler = threadData_.gcScheduler();
-    // Ignoring the return value, because this call is just a hack for
-    // GCScheduler to treat this point as a safepoint and adjust its counters.
-    scheduler.OnSafePointRegular(true, scheduler.kGCWeight);
-
     mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue finalizerQueue;
     {
         // Switch state to native to simulate this thread being a GC thread.
@@ -110,9 +105,9 @@ void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
-    auto suspended = threadData_.suspensionData().suspendIfRequested();
+    threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointRegular(suspended, weight)) {
+    if (scheduler.OnSafePointRegular(weight)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointRegular weight=%zu", weight);
         PerformFullGC();
     }
@@ -139,6 +134,7 @@ mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMark
     for (auto& thread : mm::GlobalData::Instance().threadRegistry().LockForIter()) {
         // TODO: Maybe it's more efficient to do by the suspending thread?
         thread.Publish();
+        thread.gcScheduler().OnStoppedForGC();
         size_t stack = 0;
         size_t tls = 0;
         for (auto value : mm::ThreadRootSet(thread)) {

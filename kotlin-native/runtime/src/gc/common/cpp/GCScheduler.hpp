@@ -35,7 +35,6 @@ public:
         static constexpr size_t kFunctionEpilogueWeight = 1;
         static constexpr size_t kLoopBodyWeight = 1;
         static constexpr size_t kExceptionUnwindWeight = 1;
-        static constexpr size_t kGCWeight = 0;
 
         explicit ThreadData(GCSchedulerConfig& config, OnSafePointCallback onSafePoint) noexcept :
             config_(config), onSafePoint_(std::move(onSafePoint)) {
@@ -43,12 +42,7 @@ public:
         }
 
         // Should be called on encountering a safepoint.
-        bool OnSafePointRegular(bool suspended, size_t weight) noexcept {
-            if (suspended) {
-                ClearCountersAndUpdateThresholds();
-                return false;
-            }
-
+        bool OnSafePointRegular(size_t weight) noexcept {
             safePointsCounter_ += weight;
             if (safePointsCounter_ < safePointsCounterThreshold_) {
                 return false;
@@ -58,18 +52,15 @@ public:
 
         // Should be called on encountering a safepoint placed by the allocator.
         // TODO: Should this even be a safepoint (i.e. a place, where we suspend)?
-        bool OnSafePointAllocation(bool suspended, size_t size) noexcept {
-            if (suspended) {
-                ClearCountersAndUpdateThresholds();
-                return false;
-            }
-
+        bool OnSafePointAllocation(size_t size) noexcept {
             allocatedBytes_ += size;
             if (allocatedBytes_ < allocatedBytesThreshold_) {
                 return false;
             }
             return OnSafePointSlowPath();
         }
+
+        void OnStoppedForGC() noexcept { ClearCountersAndUpdateThresholds(); }
 
     private:
         bool OnSafePointSlowPath() noexcept;
