@@ -29,24 +29,24 @@ gc::GCSchedulerConfig::GCSchedulerConfig() noexcept {
         // TODO: Make it even more aggressive and run on a subset of backend.native tests.
         threshold = 1000;
         allocationThresholdBytes = 10000;
-        cooldownThresholdUs = 0;
+        cooldownThresholdNs = 0;
     }
 }
 
-gc::GCScheduler::GCData::GCData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept :
-    config_(config), currentTimeCallbackUs_(std::move(currentTimeCallbackUs)), timeOfLastGcUs_(currentTimeCallbackUs_()) {}
+gc::GCScheduler::GCData::GCData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackNs) noexcept :
+    config_(config), currentTimeCallbackNs_(std::move(currentTimeCallbackNs)), timeOfLastGcNs_(currentTimeCallbackNs_()) {}
 
 bool gc::GCScheduler::GCData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
     if (allocatedBytes > config_.allocationThresholdBytes) return true;
 
-    return currentTimeCallbackUs_() - timeOfLastGcUs_ >= config_.cooldownThresholdUs;
+    return currentTimeCallbackNs_() - timeOfLastGcNs_ >= config_.cooldownThresholdNs;
 }
 
 void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
-    timeOfLastGcUs_ = currentTimeCallbackUs_();
+    timeOfLastGcNs_ = currentTimeCallbackNs_();
 }
 
-gc::GCScheduler::GCScheduler() noexcept : gcData_(config_, []() { return konan::getTimeMicros(); }) {}
+gc::GCScheduler::GCScheduler() noexcept : gcData_(config_, []() { return konan::getTimeNanos(); }) {}
 
 gc::GCScheduler::ThreadData gc::GCScheduler::NewThreadData() noexcept {
     return ThreadData(config_, [this](size_t allocatedBytes, size_t safePointsCounter) {

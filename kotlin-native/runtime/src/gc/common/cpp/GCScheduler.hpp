@@ -19,7 +19,7 @@ namespace gc {
 struct GCSchedulerConfig {
     std::atomic<size_t> threshold = 100000; // Roughly 1 safepoint per 10ms (on a subset of examples on one particular machine).
     std::atomic<size_t> allocationThresholdBytes = 10 * 1024 * 1024; // 10MiB by default.
-    std::atomic<uint64_t> cooldownThresholdUs = 200 * 1000; // 200 milliseconds by default.
+    std::atomic<uint64_t> cooldownThresholdNs = 200 * 1000 * 1000; // 200 milliseconds by default.
     std::atomic<bool> autoTune = false;
 
     GCSchedulerConfig() noexcept;
@@ -88,7 +88,7 @@ public:
     public:
         using CurrentTimeCallback = std::function<uint64_t()>;
 
-        GCData(GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackUs) noexcept;
+        GCData(GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackNs) noexcept;
 
         // May be called by different threads via `ThreadData`.
         bool OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept;
@@ -98,9 +98,9 @@ public:
 
     private:
         GCSchedulerConfig& config_;
-        CurrentTimeCallback currentTimeCallbackUs_;
+        CurrentTimeCallback currentTimeCallbackNs_;
 
-        std::atomic<uint64_t> timeOfLastGcUs_;
+        std::atomic<uint64_t> timeOfLastGcNs_;
     };
 
     GCScheduler() noexcept;
