@@ -56,6 +56,8 @@ public:
         void OnOOM(size_t size) noexcept;
 
     private:
+        void SafePointRegular(size_t weight) noexcept;
+
         SameThreadMarkAndSweep& gc_;
         mm::ThreadData& threadData_;
     };

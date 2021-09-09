@@ -54,30 +54,15 @@ struct FinalizeTraits {
 } // namespace
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointFunctionEpilogue() noexcept {
-    auto suspended = threadData_.suspensionData().suspendIfRequested();
-    auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointRegular(suspended, scheduler.kFunctionEpilogueWeight)) {
-        RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointFunctionEpilogue");
-        PerformFullGC();
-    }
+    SafePointRegular(GCScheduler::ThreadData::kFunctionEpilogueWeight);
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointLoopBody() noexcept {
-    auto suspended = threadData_.suspensionData().suspendIfRequested();
-    auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointRegular(suspended, scheduler.kLoopBodyWeight)) {
-        RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointLoopBody");
-        PerformFullGC();
-    }
+    SafePointRegular(GCScheduler::ThreadData::kLoopBodyWeight);
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointExceptionUnwind() noexcept {
-    auto suspended = threadData_.suspensionData().suspendIfRequested();
-    auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointRegular(suspended, scheduler.kExceptionUnwindWeight)) {
-        RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointExceptionUnwind");
-        PerformFullGC();
-    }
+    SafePointRegular(GCScheduler::ThreadData::kExceptionUnwindWeight);
 }
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) noexcept {
@@ -122,6 +107,15 @@ void gc::SameThreadMarkAndSweep::ThreadData::PerformFullGC() noexcept {
 void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
     RuntimeLogDebug({kTagGC}, "Attempt to GC on OOM at size=%zu", size);
     PerformFullGC();
+}
+
+void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
+    auto suspended = threadData_.suspensionData().suspendIfRequested();
+    auto& scheduler = threadData_.gcScheduler();
+    if (scheduler.OnSafePointRegular(suspended, weight)) {
+        RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointRegular weight=%zu", weight);
+        PerformFullGC();
+    }
 }
 
 mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
