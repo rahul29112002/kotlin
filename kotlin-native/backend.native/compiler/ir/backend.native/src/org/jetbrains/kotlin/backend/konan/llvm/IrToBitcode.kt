@@ -73,7 +73,7 @@ internal val IrField.storageKind: FieldStorageKind get() {
 internal fun IrField.needsGCRegistration(context: Context) =
         context.memoryModel == MemoryModel.EXPERIMENTAL && // only for the new MM
                 type.binaryTypeIsReference() && // only for references
-                (initializer?.expression !is IrConst<*>? || // which are initialized from heap object
+                (hasNonConstInitializer || // which are initialized from heap object
                         !isFinal) // or are not final
 
 internal fun IrClass.storageKind(context: Context): ObjectStorageKind = when {
@@ -344,8 +344,7 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
 
     private fun FunctionGenerationContext.initGlobalField(irField: IrField) {
         val address = context.llvmDeclarations.forStaticField(irField).storageAddressAccess.getAddress(this)
-        val initialExpression = irField.initializer?.expression
-        val initialValue = if (initialExpression !is IrConst<*>? && initialExpression !is IrConstantValue) {
+        val initialValue = if (irField.hasNonConstInitializer) {
             val initialization = evaluateExpression(irField.initializer!!.expression)
             if (irField.shouldBeFrozen(context))
                 freeze(initialization, currentCodeContext.exceptionHandler)
