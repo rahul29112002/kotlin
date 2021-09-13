@@ -19,7 +19,7 @@ abstract class IrConstantPrimitive : IrConstantValue() {
 
 abstract class IrConstantObject : IrConstantValue() {
     abstract val constructor: IrConstructorSymbol
-    abstract val arguments: List<IrConstantValue>
+    abstract val valueArguments: List<IrConstantValue>
     abstract val typeArguments: List<IrType>
     abstract fun putArgument(index: Int, value: IrConstantValue)
 }

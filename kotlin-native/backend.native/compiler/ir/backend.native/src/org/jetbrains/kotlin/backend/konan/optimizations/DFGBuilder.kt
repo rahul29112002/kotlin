@@ -893,7 +893,7 @@ internal class ModuleDFGBuilder(val context: Context, val irModule: IrModuleFrag
                                 DataFlowIR.Node.Singleton(
                                         symbolTable.mapType(value.type),
                                         symbolTable.mapFunction(value.constructor.owner),
-                                        value.arguments.map { expressionToEdge(it) }
+                                        value.valueArguments.map { expressionToEdge(it) }
                                 )
 
                             else -> TODO("Unknown expression: ${ir2stringWhole(value)}")

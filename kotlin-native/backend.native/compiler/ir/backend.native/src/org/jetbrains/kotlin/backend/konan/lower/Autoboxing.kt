@@ -166,7 +166,7 @@ private class AutoboxingTransformer(val context: Context) : AbstractValueUsageTr
                     is IrConstantObject -> {
                         val expectedInlinedType = expectedType.getInlinedClassNative()
                         if (expectedInlinedType != null) {
-                            this.arguments.singleOrNull()?.useAs(expectedType)
+                            this.valueArguments.singleOrNull()?.useAs(expectedType)
                                     ?: error("Inline class must have single argument constructor")
                         } else {
                             this

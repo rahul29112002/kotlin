@@ -1861,21 +1861,21 @@ internal class CodeGeneratorVisitor(val context: Context, val lifetimes: Map<IrE
                 val needUnBoxing = constructedType.getInlinedClassNative() != null &&
                         context.ir.symbols.getTypeConversion(constructedType, value.type) == null
                 if (needUnBoxing) {
-                    val unboxed = value.arguments.singleOrNull()
+                    val unboxed = value.valueArguments.singleOrNull()
                             ?: error("Inlined class should have exactly one constructor argument")
                     return evaluateConstantValue(unboxed)
                 }
                 val fields = if (value.constructor.owner.isConstantConstructorIntrinsic) {
-                    intrinsicGenerator.evaluateConstantConstructorFields(value, value.arguments.map { evaluateConstantValue(it) })
+                    intrinsicGenerator.evaluateConstantConstructorFields(value, value.valueArguments.map { evaluateConstantValue(it) })
                 } else {
                     context.getLayoutBuilder(constructedClass).fields.map { field ->
                         val index = value.constructor.owner.valueParameters
                                 .indexOfFirst { it.name == field.name }
                                 .takeIf { it >= 0 }
                                 ?: error("Bad statically initialized object: field ${field.kotlinFqName} value not set")
-                        evaluateConstantValue(value.arguments[index])
+                        evaluateConstantValue(value.valueArguments[index])
                     }.also {
-                        require(it.size == value.arguments.size) { "Bad statically initialized object: too many fields" }
+                        require(it.size == value.valueArguments.size) { "Bad statically initialized object: too many fields" }
                     }
                 }
 

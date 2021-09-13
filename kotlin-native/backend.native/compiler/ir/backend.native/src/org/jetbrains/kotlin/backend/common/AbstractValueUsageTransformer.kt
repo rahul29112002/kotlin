@@ -291,7 +291,7 @@ internal abstract class AbstractValueUsageTransformer(
     override fun visitConstantObject(expression: IrConstantObject): IrConstantValue {
         expression.transformChildrenVoid(this)
 
-        expression.arguments.forEachIndexed { index, arg ->
+        expression.valueArguments.forEachIndexed { index, arg ->
             expression.putArgument(index, arg.useAsArgument(expression.constructor.owner.valueParameters[index]) as IrConstantValue)
         }
         return expression

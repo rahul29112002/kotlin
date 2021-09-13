@@ -52,29 +52,29 @@ class IrConstantObjectImpl constructor(
     override val typeArguments: List<IrType>,
     override var type: IrType = constructor.owner.constructedClassType,
 ) : IrConstantObject() {
-    override val arguments = SmartList(initArguments)
+    override val valueArguments = SmartList(initArguments)
 
     override fun <R, D> accept(visitor: IrElementVisitor<R, D>, data: D): R {
         return visitor.visitConstantObject(this, data)
     }
 
     override fun putArgument(index: Int, value: IrConstantValue) {
-        arguments[index] = value
+        valueArguments[index] = value
     }
 
     override fun contentEquals(other: IrConstantValue): Boolean =
         other is IrConstantObject &&
                 other.type == type &&
                 other.constructor == constructor &&
-                arguments.size == other.arguments.size &&
+                valueArguments.size == other.valueArguments.size &&
                 typeArguments.size == other.typeArguments.size &&
-                arguments.indices.all { index -> arguments[index].contentEquals(other.arguments[index]) } &&
+                valueArguments.indices.all { index -> valueArguments[index].contentEquals(other.valueArguments[index]) } &&
                 typeArguments.indices.all { index -> typeArguments[index] == other.typeArguments[index] }
 
 
     override fun contentHashCode(): Int {
         var res = type.hashCode() * 31 + constructor.hashCode()
-        for (value in arguments) {
+        for (value in valueArguments) {
             res = res * 31 + value.contentHashCode()
         }
         for (value in typeArguments) {
@@ -84,11 +84,11 @@ class IrConstantObjectImpl constructor(
     }
 
     override fun <D> acceptChildren(visitor: IrElementVisitor<Unit, D>, data: D) {
-        arguments.forEach { value -> value.accept(visitor, data) }
+        valueArguments.forEach { value -> value.accept(visitor, data) }
     }
 
     override fun <D> transformChildren(transformer: IrElementTransformer<D>, data: D) {
-        arguments.transformInPlace { it.transform(transformer, data) }
+        valueArguments.transformInPlace { it.transform(transformer, data) }
     }
 }
 

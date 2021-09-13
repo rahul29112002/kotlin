@@ -411,7 +411,7 @@ open class DeepCopyIrTreeWithSymbols(
         IrConstantObjectImpl(
             expression.startOffset, expression.endOffset,
             symbolRemapper.getReferencedConstructor(expression.constructor),
-            expression.arguments.transform(),
+            expression.valueArguments.transform(),
             expression.typeArguments.map { it.remapType() },
             expression.type.remapType()
         ).copyAttributes(expression)
