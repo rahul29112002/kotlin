@@ -292,7 +292,7 @@ internal abstract class AbstractValueUsageTransformer(
         expression.transformChildrenVoid(this)
 
         expression.arguments.forEachIndexed { index, arg ->
-            arg.useAsArgument(expression.constructor.owner.valueParameters[index])
+            expression.putArgument(index, arg.useAsArgument(expression.constructor.owner.valueParameters[index]) as IrConstantValue)
         }
         return expression
     }
