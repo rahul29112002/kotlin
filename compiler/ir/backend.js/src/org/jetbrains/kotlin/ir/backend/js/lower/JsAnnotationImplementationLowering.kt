@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.ir.backend.js.JsIrBackendContext
 import org.jetbrains.kotlin.ir.builders.IrBlockBodyBuilder
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
@@ -38,9 +39,8 @@ class JsAnnotationImplementationTransformer(val jsContext: JsIrBackendContext) :
 
     override fun visitClassNew(declaration: IrClass): IrClass {
         if (!declaration.isAnnotationClass) return declaration
-        val properties = declaration.getAnnotationProperties()
         context.irFactory.stageController.unrestrictDeclarationListsAccess {
-            implementEqualsAndHashCode(declaration, declaration, properties, properties)
+            implementGeneratedFunctions(declaration, declaration, declaration.createGeneratedFunctions())
         }
         return declaration
     }
@@ -65,5 +65,17 @@ class JsAnnotationImplementationTransformer(val jsContext: JsIrBackendContext) :
                 putValueArgument(0, arg2)
             }
         } else super.generatedEquals(irBuilder, type, arg1, arg2)
+    }
+
+    override fun getEqualsProperties(annotationClass: IrClass, implClass: IrClass) = annotationClass.getAnnotationProperties()
+    override fun getHashCodeProperties(annotationClass: IrClass, implClass: IrClass) = annotationClass.getAnnotationProperties()
+    override fun getToStringProperties(annotationClass: IrClass, implClass: IrClass) = annotationClass.getAnnotationProperties()
+
+    override fun implementAnnotationPropertiesAndConstructor(
+        implClass: IrClass,
+        annotationClass: IrClass,
+        generatedConstructor: IrConstructor
+    ) {
+        throw IllegalStateException("Should not be called")
     }
 }
