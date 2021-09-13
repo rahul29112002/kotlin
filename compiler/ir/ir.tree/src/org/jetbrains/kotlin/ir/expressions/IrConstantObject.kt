@@ -28,7 +28,3 @@ abstract class IrConstantArray : IrConstantValue() {
     abstract val elements: List<IrConstantValue>
     abstract fun putElement(index: Int, value: IrConstantValue)
 }
-
-abstract class IrConstantIntrinsic : IrConstantValue() {
-    abstract var expression: IrExpression
-}

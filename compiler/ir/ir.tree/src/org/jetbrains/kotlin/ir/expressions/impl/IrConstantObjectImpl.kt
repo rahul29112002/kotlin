@@ -21,7 +21,7 @@ class IrConstantPrimitiveImpl(
     override var value: IrConst<*>,
 ) : IrConstantPrimitive() {
     override fun contentEquals(other: IrConstantValue) =
-        other is IrConstantPrimitiveImpl &&
+        other is IrConstantPrimitive &&
                 value.kind == other.value.kind &&
                 value.value == other.value
 
@@ -62,7 +62,7 @@ class IrConstantObjectImpl constructor(
     }
 
     override fun contentEquals(other: IrConstantValue): Boolean =
-        other is IrConstantObjectImpl &&
+        other is IrConstantObject &&
                 other.type == type &&
                 other.constructor == constructor &&
                 arguments.size == other.arguments.size &&
@@ -103,7 +103,7 @@ class IrConstantArrayImpl(
     }
 
     override fun contentEquals(other: IrConstantValue): Boolean =
-        other is IrConstantArrayImpl &&
+        other is IrConstantArray &&
                 other.type == type &&
                 elements.size == other.elements.size &&
                 elements.indices.all { elements[it].contentEquals(other.elements[it]) }

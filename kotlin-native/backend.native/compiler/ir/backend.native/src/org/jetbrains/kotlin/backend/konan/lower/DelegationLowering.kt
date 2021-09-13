@@ -80,6 +80,7 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
                         isStatic = true,
                 ).apply {
                     parent = irFile
+                    annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.ir.symbols.eagerInitialization.owner)
                     annotations += buildSimpleAnnotation(context.irBuiltIns, startOffset, endOffset, context.ir.symbols.sharedImmutable.owner)
                     initializer = value
                 }
@@ -139,7 +140,7 @@ internal class PropertyDelegationLowering(val context: Context) : FileLoweringPa
                 }
             }
         })
-        irFile.declarations.addAll(kProperties.values)
+        irFile.declarations.addAll(0, kProperties.values)
         irFile.declarations.addAll(generatedClasses)
     }
 

@@ -20,14 +20,13 @@ import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.types.*
 import org.jetbrains.kotlin.ir.util.*
-import org.jetbrains.kotlin.ir.util.irCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameUnsafe
 import org.jetbrains.kotlin.resolve.descriptorUtil.getAllSuperClassifiers
 import org.jetbrains.kotlin.types.Variance
 
-private fun IrBuilderWithScope.irStaticString(string: String) = irConstantPrimitive(irString(string))
-private fun IrBuilderWithScope.irStaticInt(int: Int) = irConstantPrimitive(irInt(int))
-private fun IrBuilderWithScope.irStaticBoolean(boolean: Boolean) = irConstantPrimitive(irBoolean(boolean))
+private fun IrBuilderWithScope.irConstantString(string: String) = irConstantPrimitive(irString(string))
+private fun IrBuilderWithScope.irConstantInt(int: Int) = irConstantPrimitive(irInt(int))
+private fun IrBuilderWithScope.irConstantBoolean(boolean: Boolean) = irConstantPrimitive(irBoolean(boolean))
 
 internal class KTypeGenerator(
         val context: KonanBackendContext,
@@ -54,7 +53,8 @@ internal class KTypeGenerator(
                 irTypeArguments = emptyList(),
                 isMarkedNullable = false,
                 leaveReifiedForLater = leaveReifiedForLater,
-                seenTypeParameters = seenTypeParameters
+                seenTypeParameters = seenTypeParameters,
+                type = type,
             )
         }
         try {
@@ -77,7 +77,8 @@ internal class KTypeGenerator(
                     irTypeArguments = type.arguments,
                     isMarkedNullable = type.hasQuestionMark,
                     leaveReifiedForLater = leaveReifiedForLater,
-                    seenTypeParameters = seenTypeParameters
+                    seenTypeParameters = seenTypeParameters,
+                    type = type,
             )
         } catch (t: RecursiveBoundsException) {
             if (needExactTypeParameters)
@@ -91,12 +92,13 @@ internal class KTypeGenerator(
         irTypeArguments: List<IrTypeArgument>,
         isMarkedNullable: Boolean,
         leaveReifiedForLater: Boolean,
-        seenTypeParameters: MutableSet<IrTypeParameter>
+        seenTypeParameters: MutableSet<IrTypeParameter>,
+        type: IrType,
     ): IrConstantValue = irConstantObject(symbols.kTypeImpl.owner, mapOf(
         "classifier" to kClassifier,
         "arguments" to irKTypeProjectionsList(irTypeArguments, leaveReifiedForLater, seenTypeParameters),
         "isMarkedNullable" to irConstantPrimitive(irBoolean(isMarkedNullable)),
-    ))
+    ), listOf(type))
 
     private fun IrBuilderWithScope.irKClass(symbol: IrClassSymbol) = irKClass(this@KTypeGenerator.context, symbol)
 
@@ -108,11 +110,11 @@ internal class KTypeGenerator(
         if (!seenTypeParameters.add(typeParameter))
             throw RecursiveBoundsException("Non-reified type parameters with recursive bounds are not supported yet: ${typeParameter.render()}")
         val result = irConstantObject(symbols.kTypeParameterImpl.owner, mapOf(
-                "name" to irStaticString(typeParameter.name.asString()),
-                "containerFqName" to irStaticString(typeParameter.parentUniqueName),
+                "name" to irConstantString(typeParameter.name.asString()),
+                "containerFqName" to irConstantString(typeParameter.parentUniqueName),
                 "upperBounds" to irKTypeList(typeParameter.superTypes, leaveReifiedForLater, seenTypeParameters),
-                "varianceId" to irStaticInt(mapVariance(typeParameter.variance)),
-                "isReified" to irStaticBoolean(typeParameter.isReified),
+                "varianceId" to irConstantInt(mapVariance(typeParameter.variance)),
+                "isReified" to irConstantBoolean(typeParameter.isReified),
         ))
         seenTypeParameters.remove(typeParameter)
         return result
@@ -154,8 +156,8 @@ internal class KTypeGenerator(
                 symbols.intArrayType,
                 irTypeArguments.map { argument ->
                     when (argument) {
-                        is IrStarProjection -> irStaticInt(-1)
-                        is IrTypeProjection -> irStaticInt(mapVariance(argument.variance))
+                        is IrStarProjection -> irConstantInt(-1)
+                        is IrTypeProjection -> irConstantInt(mapVariance(argument.variance))
                         else -> error("Unexpected IrTypeArgument: $argument (${argument::class})")
                     }
                 })
@@ -193,5 +195,5 @@ internal fun IrBuilderWithScope.irKClass(context: KonanBackendContext, symbol: I
 
 private fun IrBuilderWithScope.irKClassUnsupported(context: KonanBackendContext, message: String) =
         irConstantObject(context.ir.symbols.kClassUnsupportedImpl.owner, mapOf(
-                "message" to irStaticString(message)
+                "message" to irConstantString(message)
         ))

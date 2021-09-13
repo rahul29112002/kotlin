@@ -7,27 +7,25 @@ package kotlin.native.internal
 
 import kotlin.reflect.*
 
-internal class KVarianceMapper {
-    companion object {
-        // this constants are copypasted to ReflectionSupport.kt
-        const val VARIANCE_STAR = -1
-        const val VARIANCE_INVARIANT = 0
-        const val VARIANCE_IN = 1
-        const val VARIANCE_OUT = 2
+internal object KVarianceMapper {
+    // this constants are copypasted to ReflectionSupport.kt
+    const val VARIANCE_STAR = -1
+    const val VARIANCE_INVARIANT = 0
+    const val VARIANCE_IN = 1
+    const val VARIANCE_OUT = 2
 
-        fun idByVariance(variance: KVariance) = when (variance) {
-            KVariance.INVARIANT -> VARIANCE_INVARIANT
-            KVariance.IN -> VARIANCE_IN
-            KVariance.OUT -> VARIANCE_OUT
-        }
+    fun idByVariance(variance: KVariance) = when (variance) {
+        KVariance.INVARIANT -> VARIANCE_INVARIANT
+        KVariance.IN -> VARIANCE_IN
+        KVariance.OUT -> VARIANCE_OUT
+    }
 
-        fun varianceById(id : Int) = when (id) {
-            VARIANCE_STAR -> null
-            VARIANCE_INVARIANT -> KVariance.INVARIANT
-            VARIANCE_IN -> KVariance.IN
-            VARIANCE_OUT -> KVariance.OUT
-            else -> throw IllegalStateException()
-        }
+    fun varianceById(id: Int) = when (id) {
+        VARIANCE_STAR -> null
+        VARIANCE_INVARIANT -> KVariance.INVARIANT
+        VARIANCE_IN -> KVariance.IN
+        VARIANCE_OUT -> KVariance.OUT
+        else -> throw IllegalStateException("Unknown variance id ${id}")
     }
 }
 

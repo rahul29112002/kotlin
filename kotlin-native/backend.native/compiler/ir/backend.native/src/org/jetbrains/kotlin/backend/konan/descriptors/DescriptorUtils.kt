@@ -43,7 +43,7 @@ internal val IrClass.implementedInterfaces: List<IrClass>
 internal val IrFunction.isTypedIntrinsic: Boolean
     get() = annotations.hasAnnotation(KonanFqNames.typedIntrinsic)
 
-internal val IrFunction.isConstantConstructorIntrinsic: Boolean
+internal val IrConstructor.isConstantConstructorIntrinsic: Boolean
     get() = annotations.hasAnnotation(KonanFqNames.constantConstructorIntrinsic)
 
 internal val arrayTypes = setOf(
