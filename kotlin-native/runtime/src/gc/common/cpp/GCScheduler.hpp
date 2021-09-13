@@ -17,7 +17,7 @@ namespace kotlin {
 namespace gc {
 
 struct GCSchedulerConfig {
-    std::atomic<size_t> threshold = 100000; // Roughly 1 safepoint per 10ms (on a subset of examples on one particular machine).
+    std::atomic<size_t> threshold = std::numeric_limits<size_t>::max(); // Roughly 1 safepoint per 10ms (on a subset of examples on one particular machine).
     std::atomic<size_t> allocationThresholdBytes = 10 * 1024 * 1024; // 10MiB by default.
     std::atomic<uint64_t> cooldownThresholdNs = 200 * 1000 * 1000; // 200 milliseconds by default.
     std::atomic<bool> autoTune = false;
