@@ -147,3 +147,29 @@ interface S
     assertEquals("[kotlin.collections.List<kotlin.Int>, codegen.initializers.static.S]",
             (type.arguments[2].type!!.classifier as KTypeParameter).upperBounds.toString())
 }
+
+inline fun invokeAndReturnKClass(block: ()->Boolean) : KClass<*> {
+    try {
+        if (block()) {
+            return Double::class
+        }
+    } catch (e: Exception) {
+        return String::class
+    } finally {
+        return Int::class
+    }
+}
+
+@Test fun testConstantObjectInFinally() {
+    for (i in 0..2) {
+        val clazz = invokeAndReturnKClass {
+            when (i) {
+                0 -> true
+                1 -> false
+                else -> TODO("test")
+            }
+        }
+        assertTrue(clazz.isPermanent())
+        assertEquals("kotlin.Int", clazz.qualifiedName)
+    }
+}
