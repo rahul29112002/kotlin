@@ -106,11 +106,13 @@ void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
     threadData_.suspensionData().suspendIfRequested();
+#if 0
     auto& scheduler = threadData_.gcScheduler();
     if (scheduler.OnSafePointRegular(weight)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointRegular weight=%zu", weight);
         PerformFullGC();
     }
+#endif
 }
 
 mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
