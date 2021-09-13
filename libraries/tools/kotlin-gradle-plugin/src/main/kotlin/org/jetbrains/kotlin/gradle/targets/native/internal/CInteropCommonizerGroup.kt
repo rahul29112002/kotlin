@@ -16,15 +16,15 @@ internal data class CInteropCommonizerGroup(
     @Suppress("deprecation")
     override fun toString(): String {
         return buildString {
-            appendln("InteropsGroup {")
-            appendln("targets: ")
+            appendLine("InteropsGroup {")
+            appendLine("targets: ")
             targets.sortedBy { it.targets.size }.forEach { target ->
-                appendln("    $target")
+                appendLine("    $target")
             }
-            appendln()
-            appendln("interops: ")
+            appendLine()
+            appendLine("interops: ")
             interops.sortedBy { it.toString() }.forEach { interop ->
-                appendln("    $interop")
+                appendLine("    $interop")
             }
             appendLine("}")
         }
