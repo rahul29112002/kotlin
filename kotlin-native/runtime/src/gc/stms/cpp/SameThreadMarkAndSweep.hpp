@@ -62,10 +62,12 @@ public:
         mm::ThreadData& threadData_;
     };
 
-    SameThreadMarkAndSweep() noexcept = default;
+    SameThreadMarkAndSweep() noexcept;
     ~SameThreadMarkAndSweep() = default;
 
 private:
+    void ScheduleGC() noexcept;
+
     mm::ObjectFactory<SameThreadMarkAndSweep>::FinalizerQueue PerformFullGC() noexcept;
 
     size_t epoch_ = 0;

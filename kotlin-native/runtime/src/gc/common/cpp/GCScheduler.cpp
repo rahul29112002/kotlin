@@ -6,14 +6,14 @@
 #include "GCScheduler.hpp"
 
 #include "CompilerConstants.hpp"
+#include "KAssert.h"
 #include "Porting.h"
 
 using namespace kotlin;
 
-bool gc::GCScheduler::ThreadData::OnSafePointSlowPath() noexcept {
-    const auto result = onSafePoint_(allocatedBytes_, safePointsCounter_);
+void gc::GCScheduler::ThreadData::OnSafePointSlowPath() noexcept {
+    onSafePoint_(allocatedBytes_, safePointsCounter_);
     ClearCountersAndUpdateThresholds();
-    return result;
 }
 
 void gc::GCScheduler::ThreadData::ClearCountersAndUpdateThresholds() noexcept {
@@ -36,10 +36,11 @@ gc::GCSchedulerConfig::GCSchedulerConfig() noexcept {
 gc::GCScheduler::GCData::GCData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackNs) noexcept :
     config_(config), currentTimeCallbackNs_(std::move(currentTimeCallbackNs)), timeOfLastGcNs_(currentTimeCallbackNs_()) {}
 
-bool gc::GCScheduler::GCData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
-    if (allocatedBytes > config_.allocationThresholdBytes) return true;
-
-    return currentTimeCallbackNs_() - timeOfLastGcNs_ >= config_.cooldownThresholdNs;
+void gc::GCScheduler::GCData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
+    if (allocatedBytes > config_.allocationThresholdBytes || currentTimeCallbackNs_() - timeOfLastGcNs_ >= config_.cooldownThresholdNs) {
+        RuntimeAssert(static_cast<bool>(scheduleGC_), "scheduleGC_ cannot be empty");
+        scheduleGC_();
+    }
 }
 
 void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
@@ -50,6 +51,13 @@ gc::GCScheduler::GCScheduler() noexcept : gcData_(config_, []() { return konan::
 
 gc::GCScheduler::ThreadData gc::GCScheduler::NewThreadData() noexcept {
     return ThreadData(config_, [this](size_t allocatedBytes, size_t safePointsCounter) {
-        return gcData().OnSafePoint(allocatedBytes, safePointsCounter);
+        gcData().OnSafePoint(allocatedBytes, safePointsCounter);
     });
+}
+
+void gc::GCScheduler::SetScheduleGC(std::function<void()> scheduleGC) noexcept {
+    RuntimeAssert(static_cast<bool>(scheduleGC), "scheduleGC cannot be empty");
+    RuntimeAssert(!static_cast<bool>(scheduleGC_), "scheduleGC must not have been set");
+    scheduleGC_ = std::move(scheduleGC);
+    gcData_.SetScheduleGC(scheduleGC_);
 }

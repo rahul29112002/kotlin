@@ -51,6 +51,8 @@ struct FinalizeTraits {
     using ObjectFactory = mm::ObjectFactory<gc::SameThreadMarkAndSweep>;
 };
 
+std::atomic<bool> needsGC_;
+
 } // namespace
 
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointFunctionEpilogue() noexcept {
@@ -68,7 +70,9 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointExceptionUnwind() noexcept
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) noexcept {
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointAllocation(size)) {
+    scheduler.OnSafePointAllocation(size);
+    bool needsGC = true;
+    if (needsGC_.compare_exchange_weak(needsGC, false)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointAllocation size=%zu", size);
         PerformFullGC();
     }
@@ -107,10 +111,22 @@ void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
 void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
-    if (scheduler.OnSafePointRegular(weight)) {
+    scheduler.OnSafePointRegular(weight);
+    bool needsGC = true;
+    if (needsGC_.compare_exchange_weak(needsGC, false)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointRegular weight=%zu", weight);
         PerformFullGC();
     }
+}
+
+gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep() noexcept {
+    mm::GlobalData::Instance().gcScheduler().SetScheduleGC([this]() {
+        ScheduleGC();
+    });
+}
+
+void gc::SameThreadMarkAndSweep::ScheduleGC() noexcept {
+    needsGC_ = true;
 }
 
 mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
