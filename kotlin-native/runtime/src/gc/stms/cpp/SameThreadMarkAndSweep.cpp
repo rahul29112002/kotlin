@@ -55,15 +55,15 @@ std::atomic<bool> needsGC_;
 
 } // namespace
 
-void gc::SameThreadMarkAndSweep::ThreadData::SafePointFunctionEpilogue() noexcept {
+ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointFunctionEpilogue() noexcept {
     SafePointRegular(GCScheduler::ThreadData::kFunctionEpilogueWeight);
 }
 
-void gc::SameThreadMarkAndSweep::ThreadData::SafePointLoopBody() noexcept {
+ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointLoopBody() noexcept {
     SafePointRegular(GCScheduler::ThreadData::kLoopBodyWeight);
 }
 
-void gc::SameThreadMarkAndSweep::ThreadData::SafePointExceptionUnwind() noexcept {
+ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointExceptionUnwind() noexcept {
     SafePointRegular(GCScheduler::ThreadData::kExceptionUnwindWeight);
 }
 
@@ -107,7 +107,7 @@ void gc::SameThreadMarkAndSweep::ThreadData::OnOOM(size_t size) noexcept {
     PerformFullGC();
 }
 
-void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
+ALWAYS_INLINE void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noexcept {
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
     scheduler.OnSafePointRegular(weight);
