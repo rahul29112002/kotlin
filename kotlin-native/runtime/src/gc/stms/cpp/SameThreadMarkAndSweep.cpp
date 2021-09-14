@@ -71,8 +71,7 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) no
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
     scheduler.OnSafePointAllocation(size);
-    bool needsGC = true;
-    if (needsGC_.compare_exchange_weak(needsGC, false)) {
+    if (needsGC_) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointAllocation size=%zu", size);
         PerformFullGC();
     }
@@ -112,21 +111,16 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noe
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
     scheduler.OnSafePointRegular(weight);
-    bool needsGC = true;
-    if (needsGC_.compare_exchange_weak(needsGC, false)) {
+    if (needsGC_) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointRegular weight=%zu", weight);
         PerformFullGC();
     }
 }
 
 gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep() noexcept {
-    mm::GlobalData::Instance().gcScheduler().SetScheduleGC([this]() {
-        ScheduleGC();
+    mm::GlobalData::Instance().gcScheduler().SetScheduleGC([]() {
+        needsGC_ = true;
     });
-}
-
-void gc::SameThreadMarkAndSweep::ScheduleGC() noexcept {
-    needsGC_ = true;
 }
 
 mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMarkAndSweep::PerformFullGC() noexcept {
@@ -201,6 +195,7 @@ mm::ObjectFactory<gc::SameThreadMarkAndSweep>::FinalizerQueue gc::SameThreadMark
     // Can be unsafe, because we've stopped the world.
     auto objectsCountAfter = mm::GlobalData::Instance().objectFactory().GetSizeUnsafe();
 
+    needsGC_ = false;
     mm::ResumeThreads();
     auto timeResumeUs = konan::getTimeMicros();
 
