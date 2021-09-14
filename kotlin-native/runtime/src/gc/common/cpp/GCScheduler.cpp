@@ -12,7 +12,7 @@
 using namespace kotlin;
 
 void gc::GCScheduler::ThreadData::OnSafePointSlowPath() noexcept {
-    onSafePoint_(allocatedBytes_, safePointsCounter_);
+    onSafePoint_(*this);
     ClearCountersAndUpdateThresholds();
 }
 
@@ -36,11 +36,18 @@ gc::GCSchedulerConfig::GCSchedulerConfig() noexcept {
 gc::GCScheduler::GCData::GCData(gc::GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackNs) noexcept :
     config_(config), currentTimeCallbackNs_(std::move(currentTimeCallbackNs)), timeOfLastGcNs_(currentTimeCallbackNs_()) {}
 
-void gc::GCScheduler::GCData::OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept {
+void gc::GCScheduler::GCData::OnSafePoint(ThreadData& threadData) noexcept {
+    size_t allocatedBytes = threadData.allocatedBytes();
     if (allocatedBytes > config_.allocationThresholdBytes || currentTimeCallbackNs_() - timeOfLastGcNs_ >= config_.cooldownThresholdNs) {
         RuntimeAssert(static_cast<bool>(scheduleGC_), "scheduleGC_ cannot be empty");
         scheduleGC_();
     }
+}
+
+void gc::GCScheduler::GCData::SetScheduleGC(std::function<void()> scheduleGC) noexcept {
+    RuntimeAssert(static_cast<bool>(scheduleGC), "scheduleGC cannot be empty");
+    RuntimeAssert(!static_cast<bool>(scheduleGC_), "scheduleGC must not have been set");
+    scheduleGC_ = std::move(scheduleGC);
 }
 
 void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
@@ -50,14 +57,7 @@ void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
 gc::GCScheduler::GCScheduler() noexcept : gcData_(config_, []() { return konan::getTimeNanos(); }) {}
 
 gc::GCScheduler::ThreadData gc::GCScheduler::NewThreadData() noexcept {
-    return ThreadData(config_, [this](size_t allocatedBytes, size_t safePointsCounter) {
-        gcData().OnSafePoint(allocatedBytes, safePointsCounter);
+    return ThreadData(config_, [this](ThreadData& threadData) {
+        gcData().OnSafePoint(threadData);
     });
-}
-
-void gc::GCScheduler::SetScheduleGC(std::function<void()> scheduleGC) noexcept {
-    RuntimeAssert(static_cast<bool>(scheduleGC), "scheduleGC cannot be empty");
-    RuntimeAssert(!static_cast<bool>(scheduleGC_), "scheduleGC must not have been set");
-    scheduleGC_ = std::move(scheduleGC);
-    gcData_.SetScheduleGC(scheduleGC_);
 }

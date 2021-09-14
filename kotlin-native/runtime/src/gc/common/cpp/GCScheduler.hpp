@@ -31,7 +31,7 @@ class GCScheduler : private Pinned {
 public:
     class ThreadData {
     public:
-        using OnSafePointCallback = std::function<void(size_t, size_t)>;
+        using OnSafePointCallback = std::function<void(ThreadData&)>;
 
         static constexpr size_t kFunctionEpilogueWeight = 1;
         static constexpr size_t kLoopBodyWeight = 1;
@@ -66,6 +66,14 @@ public:
 
         void OnStoppedForGC() noexcept { ClearCountersAndUpdateThresholds(); }
 
+        size_t allocatedBytes() const noexcept {
+            return allocatedBytes_;
+        }
+
+        size_t safePointsCounter() const noexcept {
+            return safePointsCounter_;
+        }
+
     private:
         void OnSafePointSlowPath() noexcept;
         void ClearCountersAndUpdateThresholds() noexcept;
@@ -86,14 +94,13 @@ public:
         GCData(GCSchedulerConfig& config, CurrentTimeCallback currentTimeCallbackNs) noexcept;
 
         // May be called by different threads via `ThreadData`.
-        void OnSafePoint(size_t allocatedBytes, size_t safePointsCounter) noexcept;
+        void OnSafePoint(ThreadData& threadData) noexcept;
 
         // Always called by the GC thread.
         void OnPerformFullGC() noexcept;
 
-        void SetScheduleGC(std::function<void()> scheduleGC) noexcept {
-            scheduleGC_ = std::move(scheduleGC);
-        }
+        // Can only be called once.
+        void SetScheduleGC(std::function<void()> scheduleGC) noexcept;
 
     private:
         GCSchedulerConfig& config_;
@@ -109,13 +116,9 @@ public:
     GCData& gcData() noexcept { return gcData_; }
     ThreadData NewThreadData() noexcept;
 
-    // Can only be called once.
-    void SetScheduleGC(std::function<void()> scheduleGC) noexcept;
-
 private:
     GCSchedulerConfig config_;
     GCData gcData_;
-    std::function<void()> scheduleGC_;
 };
 
 } // namespace gc

@@ -118,7 +118,7 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointRegular(size_t weight) noe
 }
 
 gc::SameThreadMarkAndSweep::SameThreadMarkAndSweep() noexcept {
-    mm::GlobalData::Instance().gcScheduler().SetScheduleGC([]() {
+    mm::GlobalData::Instance().gcScheduler().gcData().SetScheduleGC([]() {
         needsGC_ = true;
     });
 }
