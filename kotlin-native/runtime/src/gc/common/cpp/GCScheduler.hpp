@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <functional>
 
+#include "CompilerConstants.hpp"
 #include "Utils.hpp"
 
 namespace kotlin {
@@ -43,11 +44,14 @@ public:
 
         // Should be called on encountering a safepoint.
         void OnSafePointRegular(size_t weight) noexcept {
-            safePointsCounter_ += weight;
-            if (safePointsCounter_ < safePointsCounterThreshold_) {
-                return;
+            // TODO: Counting safepoints is also needed for targets without threads.
+            if (compiler::gcAggressive()) {
+                safePointsCounter_ += weight;
+                if (safePointsCounter_ < safePointsCounterThreshold_) {
+                    return;
+                }
+                OnSafePointSlowPath();
             }
-            OnSafePointSlowPath();
         }
 
         // Should be called on encountering a safepoint placed by the allocator.
