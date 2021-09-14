@@ -47,6 +47,13 @@ class JvmAnnotationImplementationTransformer(val jvmContext: JvmBackendContext, 
     private val inInlineFunctionScope: Boolean
         get() = allScopes.any { it.irElement.safeAs<IrDeclaration>()?.isInPublicInlineScope == true }
 
+    override fun visitClassNew(declaration: IrClass): IrStatement {
+        if (declaration.isAnnotationClass) {
+            declaration.constructors.single().body = null
+        }
+        return super.visitClassNew(declaration)
+    }
+
     override fun visitConstructorCall(expression: IrConstructorCall): IrExpression {
         val constructedClass = expression.type.classOrNull
         if (constructedClass?.owner?.isAnnotationClass == true && inInlineFunctionScope) {
