@@ -71,7 +71,7 @@ void gc::SameThreadMarkAndSweep::ThreadData::SafePointAllocation(size_t size) no
     threadData_.suspensionData().suspendIfRequested();
     auto& scheduler = threadData_.gcScheduler();
     scheduler.OnSafePointAllocation(size);
-    if (needsGC_) {
+    if (needsGC_.load(std::memory_order_relaxed)) {
         RuntimeLogDebug({kTagGC}, "Attempt to GC at SafePointAllocation size=%zu", size);
         PerformFullGC();
     }
