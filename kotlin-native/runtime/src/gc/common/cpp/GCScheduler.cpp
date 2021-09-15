@@ -48,6 +48,19 @@ void gc::GCScheduler::GCData::SetScheduleGC(std::function<void()> scheduleGC) no
     RuntimeAssert(static_cast<bool>(scheduleGC), "scheduleGC cannot be empty");
     RuntimeAssert(!static_cast<bool>(scheduleGC_), "scheduleGC must not have been set");
     scheduleGC_ = std::move(scheduleGC);
+    timerThread_ = std::thread([this]() {TimerThreadRoutine();});
+}
+
+void RUNTIME_NORETURN gc::GCScheduler::GCData::TimerThreadRoutine() noexcept {
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::microseconds(config_.regularGcIntervalMs));
+        OnTimer();
+    }
+}
+
+void gc::GCScheduler::GCData::OnTimer() noexcept {
+    // TODO: Probably makes sense to check memory usage of the process.
+    scheduleGC_();
 }
 
 void gc::GCScheduler::GCData::OnPerformFullGC() noexcept {
