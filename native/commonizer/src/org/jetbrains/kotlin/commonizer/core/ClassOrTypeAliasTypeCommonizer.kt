@@ -57,7 +57,7 @@ internal class ClassOrTypeAliasTypeCommonizer(
                 classId = classifierId,
                 outerType = outerType,
                 arguments = arguments,
-                visibility = Visibilities.Public,
+                visibility = dependencyClassifier.visibility,
                 isMarkedNullable = isMarkedNullable
             )
 
@@ -80,7 +80,7 @@ internal class ClassOrTypeAliasTypeCommonizer(
                 classId = classifierId,
                 outerType = outerType,
                 arguments = arguments,
-                visibility = Visibilities.Public,
+                visibility = commonizedClassifier.visibility,
                 isMarkedNullable = isMarkedNullable
             )
 
